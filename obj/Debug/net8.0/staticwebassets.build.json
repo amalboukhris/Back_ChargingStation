@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "eeA7XhzPEPiJajptkuYWNxfScID20cB4wbQsh2uFoxY=",
+  "Source": "ChargingStation",
+  "BasePath": "_content/ChargingStation",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

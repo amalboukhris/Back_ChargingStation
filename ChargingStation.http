@@ -1,0 +1,6 @@
+@ChargingStation_HostAddress = http://localhost:5011
+
+GET {{ChargingStation_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
