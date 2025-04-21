@@ -1,23 +1,19 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
-
 using System.Text;
-
 using ChargingStation.Data;
 using ChargingStation.Models;
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
-using Umbraco.Core.Persistence.Repositories;
-using Microsoft.AspNetCore.JsonPatch;
+using BCrypt.Net;
+using Microsoft.Extensions.Logging;
+
 using VehicleChargingStation.Dto;
 
-namespace VehicleChargingStation.Controllers
+namespace ChargingStation.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -25,257 +21,371 @@ namespace VehicleChargingStation.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<UserController> _logger;
 
-        public UserController(AppDbContext context, IConfiguration configuration)
+        public UserController(
+            AppDbContext context,
+            ILogger<UserController> logger,
+            IConfiguration configuration)
         {
             _context = context;
+            _logger = logger;
             _configuration = configuration;
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] User user)
+        public async Task<IActionResult> Register([FromBody] UserRegistrationDto registrationDto)
         {
-         
-            if (await _context.Users.AnyAsync(u => u.Email == user.Email))
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            if (await _context.Users.AnyAsync(u => u.Email == registrationDto.Email))
+                return BadRequest(new { Message = "Email is already taken." });
+
+            var user = new User
             {
-                return BadRequest("Email is already taken.");
-            }
+                FirstName = registrationDto.FirstName,
+                LastName = registrationDto.LastName,
+                Email = registrationDto.Email,
+                PhoneNumber = registrationDto.PhoneNumber,
+                DateOfBirth = registrationDto.DateOfBirth,
+                Password = BCrypt.Net.BCrypt.HashPassword(registrationDto.Password),
+                Role = "Client"
+            };
 
-           
-            user.Password = HashPassword(user.Password);
-
-        
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "User registered successfully" });
+            return Ok(new { Message = "User registered successfully" });
         }
 
+        [HttpPost("register-admin")]
+        //[Authorize(Roles = "Admin")]
+        public async Task<IActionResult> RegisterAdmin([FromBody] UserRegistrationDto registrationDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            if (await _context.Users.AnyAsync(u => u.Email == registrationDto.Email))
+                return BadRequest(new { Message = "Email is already taken." });
+
+            var admin = new Admin
+            {
+                FirstName = registrationDto.FirstName,
+                LastName = registrationDto.LastName,
+                Email = registrationDto.Email,
+                PhoneNumber = registrationDto.PhoneNumber,
+                DateOfBirth = registrationDto.DateOfBirth,
+                Password = BCrypt.Net.BCrypt.HashPassword(registrationDto.Password),
+                Role = "Admin"
+            };
+
+            _context.Users.Add(admin);
+            await _context.SaveChangesAsync();
+
+            // Explicitly add to Admin role if using ASP.NET Core Identity
+            // await _userManager.AddToRoleAsync(admin, "Admin");
+
+            return Ok(new
+            {
+                Message = "Admin registered successfully",
+                AdminId = admin.Id
+            });
+        }
+
+        [HttpPost("login-admin")]
+        public async Task<ActionResult> LoginAdmin([FromBody] LoginRequest loginRequest)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                _logger.LogInformation("Login attempt for {Email}", loginRequest.Email);
+
+                // First check if any user exists with this email
+                var user = await _context.Users
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Email == loginRequest.Email);
+
+                if (user == null)
+                {
+                    _logger.LogWarning("No user found with email {Email}", loginRequest.Email);
+                    return Unauthorized(new { message = "Invalid credentials" });
+                }
+
+                // Then verify if it's actually an Admin
+                var admin = await _context.Users
+                    .OfType<Admin>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == user.Id);
+
+                if (admin == null)
+                {
+                    _logger.LogWarning("User {Email} is not an admin", loginRequest.Email);
+                    return Unauthorized(new { message = "Admin access only" });
+                }
+
+                if (!BCrypt.Net.BCrypt.Verify(loginRequest.Password, admin.Password))
+                {
+                    _logger.LogWarning("Invalid password for {Email}", loginRequest.Email);
+                    return Unauthorized(new { message = "Invalid credentials" });
+                }
+
+                _logger.LogInformation("Generating token for admin {Id}", admin.Id);
+                var token = GenerateJwtToken(admin);
+
+                return Ok(new
+                {
+                    token,
+                    user = new
+                    {
+                        id = admin.Id,
+                        email = admin.Email,
+                        firstName = admin.FirstName,
+                        lastName = admin.LastName,
+                        role = admin.Role
+                    },
+                    expiresIn = 3600
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Admin login error for {Email}", loginRequest.Email);
+                return StatusCode(500, new
+                {
+                    message = "Login failed",
+                    detail = ex.Message // Only include in development!
+                });
+            }
+        }
         [HttpPost("login")]
         public async Task<ActionResult> Login([FromBody] LoginRequest loginRequest)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == loginRequest.Email);
-            if (user == null || !VerifyPassword(user.Password, loginRequest.Password))
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
             {
-                return Unauthorized("Invalid email or password.");
-            }
+                _logger.LogInformation("Login attempt with email: {Email}", loginRequest?.Email);
 
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Email),
-            };
+                var user = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email == loginRequest.Email);
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                claims: claims,
-                expires: DateTime.Now.AddDays(100),
-                signingCredentials: creds
-            );
-
-            var jwtToken = new JwtSecurityTokenHandler().WriteToken(token);
-
-            return Ok(new { Message = "Login successful", Token = jwtToken });
-        }
-
-        private string HashPassword(string password)
-        {
-            using (var sha256 = SHA256.Create())
-            {
-
-                byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-                return Convert.ToBase64String(bytes);
-            }
-        }
-   
-        private bool VerifyPassword(string hashedPassword, string password)
-        {
-            
-            string hashedInputPassword = HashPassword(password);
-            return hashedInputPassword == hashedPassword;
-        }
-
-        [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUser(int id)
-        {
-            var user = await _context.Users.FindAsync(id);
-            if (user == null) return NotFound();
-            return Ok(new
-            {
-                user.Id,
-                user.FirstName,
-                user.LastName,
-                user.Email,
-                user.PhoneNumber,
-                user.DateOfBirth
-            });
-        }
-      
-            [HttpGet("profile")]
-            [Authorize]
-            public async Task<IActionResult> GetProfile()
-            {
                 try
                 {
-                    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-                    if (!int.TryParse(userId, out int id))
-                    {
-                        return BadRequest("Invalid user ID format");
-                    }
-
-                    var user = await _context.Users.FindAsync(id);
-
-                    if (user == null)
-                    {
-                        return NotFound("User not found");
-                    }
-
-                    return Ok(new
-                    {
-                        user.FirstName,
-                        user.LastName,
-                        user.Email,
-                        user.PhoneNumber,
-                        DateOfBirth = user.DateOfBirth.ToString("yyyy-MM-dd") // Formatage optionnel
-                    });
+                    if (user == null || !BCrypt.Net.BCrypt.Verify(loginRequest.Password, user.Password))
+                        return Unauthorized(new { Message = "Invalid email or password." });
                 }
-                catch (Exception ex)
+                catch (Exception bcryptEx)
                 {
-                    return StatusCode(500, $"Internal server error: {ex.Message}");
+                    _logger.LogError(bcryptEx, "Error during password verification");
+                    return StatusCode(500, new { Message = "Error verifying password" });
                 }
-            }
-        [HttpPut("profile")]
-        public async Task<IActionResult> UpdateProfile([FromBody] updateDto user, [FromHeader] string authorization)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
 
-            // Vérifier le token d'authentification
-            var token = authorization?.Split(" ").Last();
-            if (string.IsNullOrEmpty(token))
-            {
-                return Unauthorized("Token is required");
-            }
 
-            var userId = ValidateTokenAndGetUserId(token);
-            if (userId == null)
-            {
-                return Unauthorized("Invalid or expired token");
-            }
-
-            var existingUser = await _context.Users.FindAsync(userId);
-            if (existingUser == null)
-            {
-                return NotFound("User not found");
-            }
-
-            // Mise à jour des informations utilisateur sans toucher au mot de passe
-            existingUser.FirstName = user.FirstName;
-            existingUser.LastName = user.LastName;
-            existingUser.Email = user.Email;
-            existingUser.PhoneNumber = user.PhoneNumber;
-            existingUser.DateOfBirth = user.DateOfBirth;
-
-            // Sauvegarder les modifications dans la base de données
-            await _context.SaveChangesAsync();
-
-            // Retourner l'utilisateur mis à jour
-            return Ok(existingUser);
-        }
-
-        private int? ValidateTokenAndGetUserId(string token)
-        {
-            var jwtHandler = new JwtSecurityTokenHandler();
-            try
-            {
-                // Clé secrète ou clé publique utilisée pour signer et valider le token
-                var key = Encoding.ASCII.GetBytes("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjI4IiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZSI6ImFtYWxib3VraHJpczFAZ21haWwuY29tIiwiZXhwIjoxNzQzNjgxODAwLCJpc3MiOiJodHRwczovL2xvY2FsaG9zdDo3MjIxIiwiYXVkIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NzIyMSJ9.XiurKvKsg1dtjTrICy24sDMDHdYvdQsmmxIVsnsf8ZY"); // Remplacez cela par votre clé secrète ou publique
-
-                // Valider le token et extraire les informations de manière sécurisée
-                var tokenValidationParameters = new TokenValidationParameters
+                var claims = new List<Claim>
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidIssuer = "votre_issuer", // Remplacez par votre issuer
-                    ValidAudience = "votre_audience", // Remplacez par votre audience
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ClockSkew = TimeSpan.Zero // Optionnel: définit le délai de grâce pour la validation
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim(ClaimTypes.GivenName, user.FirstName),
+                    new Claim(ClaimTypes.Surname, user.LastName),
+                    new Claim(ClaimTypes.Role, user.Role),
+                    new Claim("UserType", user.GetType().Name)
                 };
 
-                // Valider le token et obtenir les données de l'utilisateur
-                var principal = jwtHandler.ValidateToken(token, tokenValidationParameters, out var validatedToken);
+                var token = GenerateJwtToken(user);
 
-                // Extraire l'ID de l'utilisateur à partir des claims du token
-                var userIdClaim = principal?.Claims.FirstOrDefault(c => c.Type == "userId");
-                return userIdClaim != null ? int.Parse(userIdClaim.Value) : (int?)null;
+                return Ok(new
+                {
+                    Token = token,
+                    UserId = user.Id,
+                    Email = user.Email,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Role = user.Role,
+                    UserType = user.GetType().Name,
+                    ExpiresIn = TimeSpan.FromDays(7).TotalSeconds
+                });
             }
-            catch (SecurityTokenExpiredException)
+            catch (Exception ex)
             {
-                // Le token est expiré
-                return null;
-            }
-            catch (Exception)
-            {
-                // Token invalide
-                return null;
+                _logger.LogError(ex, "Error in user login");
+                return StatusCode(500, new { Message = ex.Message }); // Pour voir le message réel
             }
         }
 
-
-
-
-        [HttpPatch("profile")]
-        [Authorize]
-        public async Task<IActionResult> PatchProfile([FromBody] JsonPatchDocument<User> patchDoc)
+        private string GenerateJwtToken(User user)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            if (!int.TryParse(userId, out int id))
-            {
-                return BadRequest("Invalid user ID format");
-            }
-
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            patchDoc.ApplyTo(user, (Microsoft.AspNetCore.JsonPatch.Adapters.IObjectAdapter)ModelState);
-
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
             try
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                return Conflict("Concurrency conflict occurred");
-            }
+                var jwtKey = _configuration["Jwt:SecretKey"] ?? throw new ArgumentNullException("JWT Key is not configured");
+                var jwtIssuer = _configuration["Jwt:Issuer"] ?? throw new ArgumentNullException("JWT Issuer is not configured");
+                var jwtAudience = _configuration["Jwt:Audience"] ?? throw new ArgumentNullException("JWT Audience is not configured");
+                var expiryMinutes = _configuration.GetValue<int>("Jwt:ExpiryInMinutes", 60);
 
-            return Ok(user);
+                var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+                var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+                var claims = new[]
+                {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+                var token = new JwtSecurityToken(
+                    issuer: jwtIssuer,
+                    audience: jwtAudience,
+                    claims: claims,
+                    expires: DateTime.Now.AddMinutes(expiryMinutes),
+                    signingCredentials: credentials);
+
+                return new JwtSecurityTokenHandler().WriteToken(token);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to generate JWT token");
+                throw; // Or handle differently based on your requirements
+            }
+        }
+        [Authorize]
+        [HttpPut("update-fcm-token")]
+        public async Task<IActionResult> UpdateFcmToken([FromBody] FcmTokenDto dto)
+        {
+            var userId = int.Parse(User.FindFirst("id")!.Value);
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return NotFound();
+
+            user.FcmToken = dto.FcmToken;
+            await _context.SaveChangesAsync();
+
+            return Ok();
         }
 
-        [HttpGet("all")]
-        public async Task<ActionResult<IEnumerable<User>>> GetAllUsers()
+        public class FcmTokenDto
         {
-            var users = await _context.Users.ToListAsync();
+            public string FcmToken { get; set; } = string.Empty;
+        }
+
+        [HttpGet("users")]
+        [Authorize(Roles = "Admin")] // Restrict to admin users only
+        public async Task<ActionResult<IEnumerable<UserResponseDto>>> GetAllUsers()
+        {
+            var users = await _context.Users
+                .AsNoTracking()
+                .Select(u => new UserResponseDto
+                {
+                    Id = u.Id,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    Email = u.Email,
+                    PhoneNumber = u.PhoneNumber,
+                    DateOfBirth = u.DateOfBirth,
+                    Role = u.Role
+                })
+                .ToListAsync();
+
             return Ok(users);
         }
+        [HttpGet("verify-token")]
+        [Authorize]
+        public IActionResult VerifyToken()
+        {
+            // If execution reaches here, token is valid (thanks to [Authorize] attribute)
+            return Ok(new { message = "Token is valid" });
+        }
+        [HttpGet("profile")]
+        [Authorize]
+        public async Task<IActionResult> GetProfile()
+        {
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (!int.TryParse(userId, out int id))
+                {
+                    return BadRequest("Invalid user ID format");
+                }
+
+                var user = await _context.Users.FindAsync(id);
+
+                if (user == null)
+                {
+                    return NotFound("User not found");
+                }
+
+                return Ok(new
+                {
+                    user.FirstName,
+                    user.LastName,
+                    user.Email,
+                    user.PhoneNumber,
+                    DateOfBirth = user.DateOfBirth.ToString("yyyy-MM-dd") // Formatage optionnel
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+        [HttpGet("users/{userId}/notifications")]
+        public async Task<IActionResult> GetUserNotifications(int userId)
+        {
+            var notifications = await _context.Reservations
+                .Where(r => r.UserId == userId)
+                .OrderByDescending(r => r.StartTime)
+                .Select(r => new ReservationNotificationDto(r))
+                .ToListAsync();
+
+            return Ok(notifications);
+        }
+
     }
 
     public class LoginRequest
     {
-        public string Email { get; set; } 
-        public string Password { get; set; }  
+        public string Email { get; set; }
+        public string Password { get; set; }
+    }
+
+    public class UserRegistrationDto
+    {
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string Email { get; set; }
+        public string PhoneNumber { get; set; }
+        public DateTime DateOfBirth { get; set; }
+        public string Password { get; set; }
+    }
+
+    public class UserUpdateDto
+    {
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string PhoneNumber { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+    }
+
+    public class UserResponseDto
+    {
+        public int Id { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string Email { get; set; }
+        public string PhoneNumber { get; set; }
+        public DateTime DateOfBirth { get; set; }
+        public string Role { get; set; }
+    }
+
+    public class AdminDto
+    {
+        public int Id { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string Email { get; set; }
+        public string PhoneNumber { get; set; }
+        public string DateOfBirth { get; set; }
     }
 }

@@ -1,25 +1,38 @@
-﻿//using System.ComponentModel.DataAnnotations;
-//using System.ComponentModel.DataAnnotations.Schema;
+﻿using ChargingStation.Models;
+using System.ComponentModel.DataAnnotations.Schema;
+[Table("Reservations")]
+public class Reservation
+{
+    public int Id { get; set; }
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
+    public string Status { get; set; } = "Active"; // Active, Completed, Cancelled
 
-//namespace ChargingStation.Models
-//{
-//    public class Reservation
-//    {
-//        public int Id { get; set; }
+    // Attributs supplémentaires
+    public string? ReservationCode { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? CancelledAt { get; set; }
+    public string? CancellationReason { get; set; }
+  
 
-//        [Required]
-//        public int BorneId { get; set; }
+    // Relations
+    public int ChargePointId { get; set; }
+    public ChargePoint ChargePoint { get; set; }
 
-//        [ForeignKey("BorneId")]
-//        public virtual Borne Borne { get; set; }
+    public int ConnectorId { get; set; }
+    public Connector Connector { get; set; }
 
-//        [Required]
-//        public DateTime DateDebut { get; set; }
+    public int UserId { get; set; }
+    public Client User { get; set; }
 
-//        [Required]
-//        public DateTime DateFin { get; set; }
+    public DateTime? UpdatedAt { get; internal set; }
+    public ICollection<Transaction> Transactions { get; set; }
 
-//        public string? ClientId { get; set; } // ou autre info d'utilisateur
-       
-//    }
-//}
+    
+}
+public enum ReservationStatus
+{
+    Active,
+    Cancelled,
+    Completed
+}

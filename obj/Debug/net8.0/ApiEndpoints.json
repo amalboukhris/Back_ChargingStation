@@ -1,31 +1,15 @@
 [
   {
-    "ContainingType": "VehicleChargingStation.Controllers.BorneController",
-    "Method": "AddBorne",
-    "RelativePath": "api/Borne",
-    "HttpMethod": "POST",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "borneDto",
-        "Type": "BorneCreateDto",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "VehicleChargingStation.Controllers.BorneController",
-    "Method": "GetAllBornes",
-    "RelativePath": "api/Borne",
+    "ContainingType": "ChargingStation.Controllers.ConnectorController",
+    "Method": "GetAllConnectors",
+    "RelativePath": "api/connectors",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
     "Parameters": [],
     "ReturnTypes": [
       {
-        "Type": "System.Collections.Generic.IEnumerable\u00601[[ChargingStation.Models.Borne, ChargingStation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ConnectorDto, ChargingStation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
         "MediaTypes": [
           "text/plain",
           "application/json",
@@ -36,10 +20,255 @@
     ]
   },
   {
-    "ContainingType": "VehicleChargingStation.Controllers.BorneController",
-    "Method": "GetBorne",
-    "RelativePath": "api/Borne/{id}",
+    "ContainingType": "ChargingStation.Controllers.ConnectorController",
+    "Method": "CreateConnector",
+    "RelativePath": "api/connectors",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ChargingStation.Controllers.CreateConnectorDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "ConnectorDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ChargingStation.Controllers.ConnectorController",
+    "Method": "GetConnectorById",
+    "RelativePath": "api/connectors/{chargePointId}/{connectorId}",
     "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "chargePointId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "connectorId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "ConnectorDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ChargingStation.Controllers.ConnectorController",
+    "Method": "DeleteConnector",
+    "RelativePath": "api/connectors/{chargePointId}/{connectorId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "chargePointId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "connectorId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ChargingStation.Controllers.ConnectorController",
+    "Method": "GetConnectorById",
+    "RelativePath": "api/connectors/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "ConnectorDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ChargingStation.Controllers.ConnectorController",
+    "Method": "GetConnectorsByChargePoint",
+    "RelativePath": "api/connectors/by-chargepoint/{chargePointId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "chargePointId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ConnectorDto, ChargingStation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "OcppController",
+    "Method": "RemoteStart",
+    "RelativePath": "api/ocpp/{chargePointId}/remote-start",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "chargePointId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "RemoteStartRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OcppController",
+    "Method": "HandleOcppConnection",
+    "RelativePath": "api/ocpp/{chargePointId}/ws",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "chargePointId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "OcppController",
+    "Method": "HandleHeartbeat",
+    "RelativePath": "api/ocpp/heartbeat",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "chargePointId",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.String",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ChargingStation.Controllers.ReservationsController",
+    "Method": "GetAllReservations",
+    "RelativePath": "api/Reservations",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ReservationDto, ChargingStation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ChargingStation.Controllers.ReservationsController",
+    "Method": "GetReservationById",
+    "RelativePath": "api/Reservations/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "ReservationDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ChargingStation.Controllers.ReservationsController",
+    "Method": "CancelReservation",
+    "RelativePath": "api/Reservations/{id}",
+    "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
     "Parameters": [
@@ -52,9 +281,29 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "VehicleChargingStation.Controllers.BorneController",
-    "Method": "GetUserNotifications",
-    "RelativePath": "api/Borne/notifications/{userId}",
+    "ContainingType": "ChargingStation.Controllers.ReservationsController",
+    "Method": "GetActiveReservations",
+    "RelativePath": "api/Reservations/active",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ReservationDto, ChargingStation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ChargingStation.Controllers.ReservationsController",
+    "Method": "GetReservationsByUser",
+    "RelativePath": "api/Reservations/user/{userId}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -65,44 +314,144 @@
         "IsRequired": true
       }
     ],
-    "ReturnTypes": []
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ReservationDto, ChargingStation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
   },
   {
-    "ContainingType": "VehicleChargingStation.Controllers.BorneController",
-    "Method": "ReleaseBorne",
-    "RelativePath": "api/Borne/release/{id}",
+    "ContainingType": "ChargePointsController",
+    "Method": "CreateChargePoint",
+    "RelativePath": "api/stations",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "id",
+        "Name": "stationId",
         "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "dto",
+        "Type": "CreateChargePointDto",
         "IsRequired": true
       }
     ],
-    "ReturnTypes": []
+    "ReturnTypes": [
+      {
+        "Type": "VehicleChargingStation.Dto.ChargePointDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 201
+      },
+      {
+        "Type": "Microsoft.AspNetCore.Mvc.ProblemDetails",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 400
+      },
+      {
+        "Type": "Microsoft.AspNetCore.Mvc.ProblemDetails",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 404
+      }
+    ]
   },
   {
-    "ContainingType": "VehicleChargingStation.Controllers.BorneController",
-    "Method": "ReserveBorne",
-    "RelativePath": "api/Borne/reserve/{id}",
+    "ContainingType": "StationsController",
+    "Method": "CreateStation",
+    "RelativePath": "api/stations",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "id",
-        "Type": "System.Int32",
+        "Name": "dto",
+        "Type": "CreateStationDto",
         "IsRequired": true
       }
     ],
-    "ReturnTypes": []
+    "ReturnTypes": [
+      {
+        "Type": "VehicleChargingStation.Dto.StationDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 201
+      },
+      {
+        "Type": "Microsoft.AspNetCore.Mvc.ProblemDetails",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 400
+      },
+      {
+        "Type": "Microsoft.AspNetCore.Mvc.ProblemDetails",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 401
+      },
+      {
+        "Type": "Microsoft.AspNetCore.Mvc.ProblemDetails",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 403
+      }
+    ]
   },
   {
-    "ContainingType": "VehicleChargingStation.Controllers.BorneController",
-    "Method": "GetAllBornesByStation",
-    "RelativePath": "api/Borne/station/{stationId}/available",
+    "ContainingType": "StationsController",
+    "Method": "GetStations",
+    "RelativePath": "api/stations",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[VehicleChargingStation.Dto.StationDto, ChargingStation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ChargePointsController",
+    "Method": "GetChargePoint",
+    "RelativePath": "api/stations/{chargePointId}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -110,57 +459,213 @@
       {
         "Name": "stationId",
         "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "chargePointId",
+        "Type": "System.Int32",
         "IsRequired": true
       }
     ],
-    "ReturnTypes": []
+    "ReturnTypes": [
+      {
+        "Type": "VehicleChargingStation.Dto.ChargePointDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      },
+      {
+        "Type": "Microsoft.AspNetCore.Mvc.ProblemDetails",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 404
+      }
+    ]
   },
   {
-    "ContainingType": "VehicleChargingStation.Controllers.BorneController",
-    "Method": "GetUnreadNotifications",
-    "RelativePath": "api/Borne/user/{userId}/unread-notifications",
+    "ContainingType": "ChargePointsController",
+    "Method": "GetConnectorsForChargePoint",
+    "RelativePath": "api/stations/{chargePointId}/connectors",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "userId",
+        "Name": "stationId",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "chargePointId",
         "Type": "System.Int32",
         "IsRequired": true
       }
     ],
-    "ReturnTypes": []
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ConnectorDto, ChargingStation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
   },
   {
-    "ContainingType": "ChargingStation.Controllers.ChargingStationController",
-    "Method": "GetAllStations",
-    "RelativePath": "api/ChargingStation",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "ChargingStation.Controllers.ChargingStationController",
-    "Method": "CreateStation",
-    "RelativePath": "api/ChargingStation",
+    "ContainingType": "ChargePointsController",
+    "Method": "ReserveConnector",
+    "RelativePath": "api/stations/{chargePointId}/connectors/{connectorId}/reserve",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "stationDto",
-        "Type": "ChargingStation.Controllers.ChargingStationDto",
+        "Name": "stationId",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "chargePointId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "connectorId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "ChargingStation.ReservationRequestDto",
         "IsRequired": true
       }
     ],
-    "ReturnTypes": []
+    "ReturnTypes": [
+      {
+        "Type": "ReservationDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
   },
   {
-    "ContainingType": "ChargingStation.Controllers.ChargingStationController",
+    "ContainingType": "StationsController",
+    "Method": "GetStationById",
+    "RelativePath": "api/stations/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "VehicleChargingStation.Dto.StationDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ChargePointsController",
+    "Method": "GetReservationsForConnector",
+    "RelativePath": "api/stations/chargepoints/{chargePointId}/connectors/{connectorId}/reservations",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "stationId",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "chargePointId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "connectorId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ChargePointsController\u002BReservationDetailsDto, ChargingStation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ChargePointsController",
+    "Method": "GetMyReservations",
+    "RelativePath": "api/stations/my-reservations",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ChargePointsController\u002BReservationDetailsDto, ChargingStation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ChargePointsController",
+    "Method": "GetAllReservations",
+    "RelativePath": "api/stations/reservations",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ChargePointsController\u002BReservationDetailsDto, ChargingStation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "StationsController",
     "Method": "SearchStations",
-    "RelativePath": "api/ChargingStation/search",
+    "RelativePath": "api/stations/search",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -171,25 +676,9 @@
         "IsRequired": false
       }
     ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "VehicleChargingStation.Controllers.UserController",
-    "Method": "GetUser",
-    "RelativePath": "api/User/{id}",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "id",
-        "Type": "System.Int32",
-        "IsRequired": true
-      }
-    ],
     "ReturnTypes": [
       {
-        "Type": "ChargingStation.Models.User",
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[StationSearchDto, ChargingStation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
         "MediaTypes": [
           "text/plain",
           "application/json",
@@ -200,27 +689,7 @@
     ]
   },
   {
-    "ContainingType": "VehicleChargingStation.Controllers.UserController",
-    "Method": "GetAllUsers",
-    "RelativePath": "api/User/all",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": [
-      {
-        "Type": "System.Collections.Generic.IEnumerable\u00601[[ChargingStation.Models.User, ChargingStation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "VehicleChargingStation.Controllers.UserController",
+    "ContainingType": "ChargingStation.Controllers.UserController",
     "Method": "Login",
     "RelativePath": "api/User/login",
     "HttpMethod": "POST",
@@ -229,14 +698,30 @@
     "Parameters": [
       {
         "Name": "loginRequest",
-        "Type": "VehicleChargingStation.Controllers.LoginRequest",
+        "Type": "ChargingStation.Controllers.LoginRequest",
         "IsRequired": true
       }
     ],
     "ReturnTypes": []
   },
   {
-    "ContainingType": "VehicleChargingStation.Controllers.UserController",
+    "ContainingType": "ChargingStation.Controllers.UserController",
+    "Method": "LoginAdmin",
+    "RelativePath": "api/User/login-admin",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "loginRequest",
+        "Type": "ChargingStation.Controllers.LoginRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ChargingStation.Controllers.UserController",
     "Method": "GetProfile",
     "RelativePath": "api/User/profile",
     "HttpMethod": "GET",
@@ -246,44 +731,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "VehicleChargingStation.Controllers.UserController",
-    "Method": "UpdateProfile",
-    "RelativePath": "api/User/profile",
-    "HttpMethod": "PUT",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "user",
-        "Type": "VehicleChargingStation.Dto.updateDto",
-        "IsRequired": true
-      },
-      {
-        "Name": "authorization",
-        "Type": "System.String",
-        "IsRequired": false
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "VehicleChargingStation.Controllers.UserController",
-    "Method": "PatchProfile",
-    "RelativePath": "api/User/profile",
-    "HttpMethod": "PATCH",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "patchDoc",
-        "Type": "Microsoft.AspNetCore.JsonPatch.JsonPatchDocument\u00601[[ChargingStation.Models.User, ChargingStation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "VehicleChargingStation.Controllers.UserController",
+    "ContainingType": "ChargingStation.Controllers.UserController",
     "Method": "Register",
     "RelativePath": "api/User/register",
     "HttpMethod": "POST",
@@ -291,11 +739,89 @@
     "Order": 0,
     "Parameters": [
       {
-        "Name": "user",
-        "Type": "ChargingStation.Models.User",
+        "Name": "registrationDto",
+        "Type": "ChargingStation.Controllers.UserRegistrationDto",
         "IsRequired": true
       }
     ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ChargingStation.Controllers.UserController",
+    "Method": "RegisterAdmin",
+    "RelativePath": "api/User/register-admin",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "registrationDto",
+        "Type": "ChargingStation.Controllers.UserRegistrationDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ChargingStation.Controllers.UserController",
+    "Method": "UpdateFcmToken",
+    "RelativePath": "api/User/update-fcm-token",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ChargingStation.Controllers.UserController\u002BFcmTokenDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ChargingStation.Controllers.UserController",
+    "Method": "GetAllUsers",
+    "RelativePath": "api/User/users",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ChargingStation.Controllers.UserResponseDto, ChargingStation, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ChargingStation.Controllers.UserController",
+    "Method": "GetUserNotifications",
+    "RelativePath": "api/User/users/{userId}/notifications",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "userId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ChargingStation.Controllers.UserController",
+    "Method": "VerifyToken",
+    "RelativePath": "api/User/verify-token",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
     "ReturnTypes": []
   },
   {

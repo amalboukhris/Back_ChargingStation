@@ -22,7 +22,7 @@ namespace ChargingStation.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("ChargingStation.Models.Borne", b =>
+            modelBuilder.Entity("ChargingStation.Models.ChargePoint", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -30,28 +30,52 @@ namespace ChargingStation.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ChargingStationId")
+                    b.Property<int>("ChargePointId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Etat")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DiagnosticsStatus")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FirmwareStatus")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("LastDiagnosticsTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("LastFirmwareUpdate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("LastHeartbeat")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Model")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Nom")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int?>("ReservationUserId")
+                    b.Property<int>("StationId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ChargingStationId");
+                    b.HasIndex("ChargePointId")
+                        .IsUnique();
 
-                    b.ToTable("Bornes");
+                    b.HasIndex("StationId");
+
+                    b.ToTable("ChargePoints");
                 });
 
-            modelBuilder.Entity("ChargingStation.Models.ChargingStationM", b =>
+            modelBuilder.Entity("ChargingStation.Models.MeterValue", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -59,11 +83,219 @@ namespace ChargingStation.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("Availability")
-                        .HasColumnType("boolean");
+                    b.Property<int>("ChargePointId")
+                        .HasColumnType("integer");
 
-                    b.Property<string>("Description")
+                    b.Property<int>("ConnectorId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Measurand")
+                        .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("TransactionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Value")
+                        .HasColumnType("numeric");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChargePointId");
+
+                    b.ToTable("MeterValues");
+                });
+
+            modelBuilder.Entity("ChargingStation.Models.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<DateTime>("DateOfBirth")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FcmToken")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int?>("ParentUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("RfidExpiryDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RfidTag")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Users");
+
+                    b.HasDiscriminator<string>("Discriminator").HasValue("User");
+
+                    b.UseTphMappingStrategy();
+                });
+
+            modelBuilder.Entity("Connector", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChargePointId")
+                        .HasColumnType("integer")
+                        .HasColumnName("ChargePointId");
+
+                    b.Property<int>("ConnectorId")
+                        .HasColumnType("integer")
+                        .HasColumnName("ConnectorId");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<double>("MaxPower")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChargePointId", "ConnectorId")
+                        .IsUnique();
+
+                    b.ToTable("Connectors", (string)null);
+                });
+
+            modelBuilder.Entity("Reservation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AdminId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CancellationReason")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ChargePointId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ConnectorId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("EndTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReservationCode")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdminId");
+
+                    b.HasIndex("ChargePointId");
+
+                    b.HasIndex("ConnectorId");
+
+                    b.HasIndex("ReservationCode")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Reservations", (string)null);
+                });
+
+            modelBuilder.Entity("Station", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<double>("Latitude")
                         .HasColumnType("double precision");
@@ -78,10 +310,10 @@ namespace ChargingStation.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ChargingStations");
+                    b.ToTable("Stations");
                 });
 
-            modelBuilder.Entity("ChargingStation.Models.NotificationData", b =>
+            modelBuilder.Entity("Transaction", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -89,73 +321,52 @@ namespace ChargingStation.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ClientId")
+                    b.Property<int>("ChargePointId")
                         .HasColumnType("integer");
 
-                    b.Property<DateTime>("Date")
+                    b.Property<int>("ConnectorId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("EndTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Message")
+                    b.Property<string>("IdTag")
                         .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("MeterStart")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("MeterStop")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
                         .HasColumnType("text");
+
+                    b.Property<int?>("ReservationId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("StopTimestamp")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ClientId");
+                    b.HasIndex("ChargePointId");
 
-                    b.ToTable("Notifications");
-                });
+                    b.HasIndex("ConnectorId");
 
-            modelBuilder.Entity("ChargingStation.Models.User", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                    b.HasIndex("ReservationId");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("DateOfBirth")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Discriminator")
-                        .IsRequired()
-                        .HasMaxLength(8)
-                        .HasColumnType("character varying(8)");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Password")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Users");
-
-                    b.HasDiscriminator<string>("Discriminator").HasValue("User");
-
-                    b.UseTphMappingStrategy();
+                    b.ToTable("Transactions");
                 });
 
             modelBuilder.Entity("ChargingStation.Models.Admin", b =>
@@ -172,36 +383,129 @@ namespace ChargingStation.Migrations
                     b.HasDiscriminator().HasValue("Client");
                 });
 
-            modelBuilder.Entity("ChargingStation.Models.Borne", b =>
+            modelBuilder.Entity("ChargingStation.Models.ChargePoint", b =>
                 {
-                    b.HasOne("ChargingStation.Models.ChargingStationM", "ChargingStation")
-                        .WithMany("Bornes")
-                        .HasForeignKey("ChargingStationId")
+                    b.HasOne("Station", "Station")
+                        .WithMany("ChargePoints")
+                        .HasForeignKey("StationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ChargingStation");
+                    b.Navigation("Station");
                 });
 
-            modelBuilder.Entity("ChargingStation.Models.NotificationData", b =>
+            modelBuilder.Entity("ChargingStation.Models.MeterValue", b =>
                 {
-                    b.HasOne("ChargingStation.Models.Client", "Client")
-                        .WithMany("Notifications")
-                        .HasForeignKey("ClientId")
+                    b.HasOne("ChargingStation.Models.ChargePoint", "ChargePoint")
+                        .WithMany()
+                        .HasForeignKey("ChargePointId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Client");
+                    b.Navigation("ChargePoint");
                 });
 
-            modelBuilder.Entity("ChargingStation.Models.ChargingStationM", b =>
+            modelBuilder.Entity("Connector", b =>
                 {
-                    b.Navigation("Bornes");
+                    b.HasOne("ChargingStation.Models.ChargePoint", "ChargePoint")
+                        .WithMany("Connectors")
+                        .HasForeignKey("ChargePointId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChargePoint");
+                });
+
+            modelBuilder.Entity("Reservation", b =>
+                {
+                    b.HasOne("ChargingStation.Models.Admin", null)
+                        .WithMany("Reservations")
+                        .HasForeignKey("AdminId");
+
+                    b.HasOne("ChargingStation.Models.ChargePoint", "ChargePoint")
+                        .WithMany("Reservations")
+                        .HasForeignKey("ChargePointId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Connector", "Connector")
+                        .WithMany("Reservations")
+                        .HasForeignKey("ConnectorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ChargingStation.Models.Client", "User")
+                        .WithMany("Reservations")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChargePoint");
+
+                    b.Navigation("Connector");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Transaction", b =>
+                {
+                    b.HasOne("ChargingStation.Models.ChargePoint", "ChargePoint")
+                        .WithMany("Transactions")
+                        .HasForeignKey("ChargePointId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Connector", "Connector")
+                        .WithMany("Transactions")
+                        .HasForeignKey("ConnectorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Reservation", "Reservation")
+                        .WithMany("Transactions")
+                        .HasForeignKey("ReservationId");
+
+                    b.Navigation("ChargePoint");
+
+                    b.Navigation("Connector");
+
+                    b.Navigation("Reservation");
+                });
+
+            modelBuilder.Entity("ChargingStation.Models.ChargePoint", b =>
+                {
+                    b.Navigation("Connectors");
+
+                    b.Navigation("Reservations");
+
+                    b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("Connector", b =>
+                {
+                    b.Navigation("Reservations");
+
+                    b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("Reservation", b =>
+                {
+                    b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("Station", b =>
+                {
+                    b.Navigation("ChargePoints");
+                });
+
+            modelBuilder.Entity("ChargingStation.Models.Admin", b =>
+                {
+                    b.Navigation("Reservations");
                 });
 
             modelBuilder.Entity("ChargingStation.Models.Client", b =>
                 {
-                    b.Navigation("Notifications");
+                    b.Navigation("Reservations");
                 });
 #pragma warning restore 612, 618
         }

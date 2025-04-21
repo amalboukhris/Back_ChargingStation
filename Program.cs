@@ -1,8 +1,19 @@
 using ChargingStation.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using ChargingStation.Models;
+
 using Microsoft.AspNetCore.SignalR;
+
+using System.Net;
+using System.Net.WebSockets;
+using System.Text;
+using Microsoft.OpenApi.Models;
+using System.Text.Json.Serialization;
+using System.Reflection;
+using ChargingStation.Hubs;
+
+using ChargingStation.Services;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,38 +22,64 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// Ajout des services pour les contrôleurs
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+// Ajout des services
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
     {
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Veuillez entrer le token JWT",
-        Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-        BearerFormat = "JWT",
-        Scheme = "Bearer"
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+
+builder.Services.AddEndpointsApiExplorer();
+
+// Configuration Swagger
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Charging Station API",
+        Version = "v1",
+        Description = "API for OCPP-compliant charging stations"
+    });
+    c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+    // Include XML comments if available
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
+
+    // JWT Bearer Authentication configuration
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Please enter token",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        BearerFormat = "JWT",
+        Scheme = "bearer"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            new OpenApiSecurityScheme
             {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                Reference = new OpenApiReference
                 {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Type = ReferenceType.SecurityScheme,
                     Id = "Bearer"
                 }
             },
-            new string[] { }
+            Array.Empty<string>()
         }
     });
 });
 
-// Configuration de l'authentification JWT
+// Authentification JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -59,39 +96,177 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"])
             )
         };
-    });
 
-// Configuration de CORS
+        // Configuration pour SignalR
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/ocppHub"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
+    });
+builder.Services.AddScoped<IChargePointService, ChargePointService>();
+// Add this with your other service registrations
+builder.Services.AddScoped<IOcppProtocolService, OcppProtocolService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+// Add this with your other service registrations
+builder.Services.AddScoped<IFirmwareService, FirmwareService>();
+//builder.Services.AddScoped<IReservationService, ReservationService>();
+// Configuration CORS optimisée
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader());
+    options.AddPolicy("AllowAllClients", policy =>
+    {
+        policy.WithOrigins(
+            "http://localhost",
+            "http://localhost:3000",      // React
+            "http://localhost:5173",      // React (Vite)
+            "http://localhost:7080",      // Backend local
+            "http://127.0.0.1:7080",      // Flutter Web
+            "http://10.0.2.2:7080",       // Flutter Android emulator
+            "http://192.168.0.10:7080",   // (Remplace par IP locale réelle pour mobile sur Wi-Fi)
+            "https://votrefrontend.com"   // Domaine déployé
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials();
+    });
 });
 
-// Configuration de WebSocket
-builder.Services.AddSignalR(); // Ajoutez cette ligne pour ajouter le support de SignalR
+
+// Configuration Kestrel
+// Update the Kestrel configuration
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    // Port HTTP (pour l'émulateur Android)
+    serverOptions.Listen(IPAddress.Any, 7080);
+
+    // Port HTTPS (si nécessaire)
+    serverOptions.Listen(IPAddress.Any, 7081, listenOptions =>
+    {
+        listenOptions.UseHttps();
+    });
+});
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+builder.Logging.SetMinimumLevel(LogLevel.Information);
+builder.Services.AddSignalR(options => {
+    options.EnableDetailedErrors = true;
+    options.MaximumReceiveMessageSize = 1024 * 1024; // 1MB
+});
 
 var app = builder.Build();
 
-// Configuration Swagger et des middlewares
+
 if (app.Environment.IsDevelopment())
 {
+    app.UseDeveloperExceptionPage();
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Charging Station API v1");
+        c.DisplayRequestDuration();
+        c.EnableDeepLinking();
+        c.EnableFilter();
+    });
 }
 
-app.UseCors("AllowAll");
+app.UseRouting();
 
-app.UseHttpsRedirection();
-app.UseAuthentication();  // Assurez-vous que Authentication est avant Authorization
+// IMPORTANT: L'ordre des middlewares est crucial
+app.UseCors("AllowAllClients");
+
+app.UseAuthentication();
 app.UseAuthorization();
 
-// Ajoutez WebSocket middleware
-app.UseWebSockets();
+// Configuration WebSocket
+app.UseWebSockets(new Microsoft.AspNetCore.Builder.WebSocketOptions
+{
+    KeepAliveInterval = TimeSpan.FromSeconds(30)
+});
 
-app.MapControllers();
-app.MapHub<NotificationHub>("/notifications");
+//// Middleware personnalisé pour les connexions OCPP
+//app.Use(async (context, next) =>
+//{
+//    if (context.Request.Path.StartsWithSegments("/ocpp") &&
+//        context.WebSockets.IsWebSocketRequest)
+//    {
+//        var chargePointId = context.Request.Path.Value?.Split('/').Last();
+//        if (!string.IsNullOrEmpty(chargePointId))
+//        {
+//            var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+//            var hubContext = context.RequestServices.GetRequiredService<IHubContext<ChargingHub>>();
+//            await HandleOcppConnection(webSocket, chargePointId, hubContext);
+//        }
+//    }
+//    else
+//    {
+//        await next();
+//    }
+//});
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        context.Response.StatusCode = 500;
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error = ex.Message,
+            stackTrace = app.Environment.IsDevelopment() ? ex.StackTrace : null
+        });
+    }
+});
+
+
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapControllers();
+    endpoints.MapHub<NotificationHub>("/notifications");
+    endpoints.MapHub<ChargingHub>("/chargingHub");
+    
+
+
+});
+
+
+async Task HandleOcppConnection(WebSocket webSocket, string chargePointId, IHubContext<ChargingHub> hubContext)
+{
+    var buffer = new byte[1024 * 4];
+    try
+    {
+        // Ajouter au groupe SignalR
+        await hubContext.Groups.AddToGroupAsync(chargePointId, chargePointId);
+
+        var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+        while (!result.CloseStatus.HasValue)
+        {
+            var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+            await hubContext.Clients.Group(chargePointId).SendAsync("ProcessOcppMessage", chargePointId, message);
+            result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+        }
+
+        await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Erreur WebSocket: {ex.Message}");
+    }
+    finally
+    {
+        await hubContext.Groups.RemoveFromGroupAsync(chargePointId, chargePointId);
+    }
+}
 
 app.Run();

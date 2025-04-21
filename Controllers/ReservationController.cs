@@ -1,98 +1,83 @@
-﻿//using Microsoft.AspNetCore.Mvc;
-//using ChargingStation.Models;
-//using Microsoft.EntityFrameworkCore;
-//using System.Linq;
-//using System.Threading.Tasks;
-//using ChargingStation.Data;
+﻿using ChargingStation.Models;
+using VehicleChargingStation.Dto;
+using System.Linq;
 
-//namespace VehicleChargingStation.Controllers
-//{
-//    [Route("api/[controller]")]
-//    [ApiController]
-//    public class ReservationController : ControllerBase
-//    {
-//        private readonly AppDbContext _context;
+public static class ReservationMapper
+{
+    public static ReservationDto ToReservationDto(this Reservation reservation)
+    {
+        if (reservation == null)
+            return null;
 
-//        public ReservationController(AppDbContext context)
-//        {
-//            _context = context;
-//        }
+        return new ReservationDto
+        {
+            Id = reservation.Id,
+            ReservationCode = reservation.ReservationCode,
+            ChargePointId = reservation.ChargePointId,
+            ChargePointName = reservation.ChargePoint?.Name ?? "N/A",
+            StationId = reservation.ChargePoint?.StationId ?? 0,
+            StationName = reservation.ChargePoint?.Station?.Name ?? "N/A",
+            ConnectorId = reservation.Connector?.ConnectorId ?? 0,
+            ConnectorType = reservation.Connector?.Type.ToString() ?? "N/A",
+            StartTime = reservation.StartTime,
+            EndTime = reservation.EndTime,
+            Status = reservation.Status,
+            DurationHours = (reservation.EndTime - reservation.StartTime).TotalHours,
+            IsActive = reservation.Status == "Active" &&
+                      reservation.StartTime <= DateTime.UtcNow &&
+                      reservation.EndTime >= DateTime.UtcNow,
+            UserInfo = new UserShortInfoDto
+            {
+                Id = reservation.User?.Id ?? 0,
+                FirstName = reservation.User?.FirstName ?? "N/A",
+                LastName = reservation.User?.LastName ?? "N/A",
+                Email = reservation.User?.Email ?? "N/A"
+            },
+            StationLocation = new LocationDto
+            {
+                Latitude = reservation.ChargePoint?.Station?.Latitude ?? 0,
+                Longitude = reservation.ChargePoint?.Station?.Longitude ?? 0,
+                Address = reservation.ChargePoint?.Station?.Address ?? "N/A"
+            },
+            CreatedAt = reservation.CreatedAt,
+            UpdatedAt = reservation.UpdatedAt
+        };
+    }
 
-//        //[HttpGet("vehicles")]
-//        //public async Task<IActionResult> GetVehicles()
-//        //{
-//        //    var vehicles = await _context.Vehicles
-//        //        .Select(v => new { v.Id, v.ModelName })
-//        //        .ToListAsync();
-
-//        //    return Ok(vehicles);
-//        //}
-
-
-
-//        //[HttpPost("reserve")]
-//        //public async Task<IActionResult> CreateReservation([FromBody] ReservationCreateDto reservationDto)
-//        //{
-//        //    if (reservationDto == null)
-//        //    {
-//        //        return BadRequest("Invalid reservation data.");
-//        //    }
-
-//        //    var reservation = new Reservation
-//        //    {
-//        //        VehicleId = reservationDto.VehicleId,
-//        //        ChargingStationId = reservationDto.ChargingStationId
-//        //    };
-
-//        //    _context.Reservations.Add(reservation);
-//        //    await _context.SaveChangesAsync();
-
-//        //    return Ok(new { message = "Reservation successfully created." });
-//        //}
-//        [ApiController]
-//        [Route("api/[controller]")]
-//        public class ReservationsController : ControllerBase
-//        {
-//            private readonly AppDbContext _context;
-
-//            public ReservationsController(AppDbContext context)
-//            {
-//                _context = context;
-//            }
-
-//            //    [HttpPost]
-//            //    public async Task<IActionResult> CreateReservation([FromBody] Reservation reservation)
-//            //    {
-//            //        // Vérification de la disponibilité
-//            //        bool exists = await _context.Reservations
-//            //            .AnyAsync(r => r.ChargingPointId == reservation.ChargingPointId &&
-//            //                           r.ReservationDate.Date == reservation.ReservationDate.Date);
-
-//            //        if (exists)
-//            //        {
-//            //            return Conflict("La borne est déjà réservée à cette date.");
-//            //        }
-
-//            //        _context.Reservations.Add(reservation);
-//            //        await _context.SaveChangesAsync();
-
-//            //        return Ok(reservation);
-//            //    }
-//            }
-
-//            public class ReservationDto
-//            {
-//                public int BorneId { get; set; }
-//                public DateTime DateDebut { get; set; }
-//                public DateTime DateFin { get; set; }
-//                public string? ClientId { get; set; } // facultatif
-//            }
-
-//            public class ReservationCreateDto
-//            {
-//                public int VehicleId { get; set; }
-//                public int ChargingStationId { get; set; }
-//            }
-
-//        }
-//    }
+    public static IQueryable<ReservationDto> ToReservationDtoQuery(this IQueryable<Reservation> query)
+    {
+        return query.Select(r => new ReservationDto
+        {
+            Id = r.Id,
+            ReservationCode = r.ReservationCode,
+            ChargePointId = r.ChargePointId,
+            ChargePointName = r.ChargePoint.Name,
+            StationId = r.ChargePoint.StationId,
+            StationName = r.ChargePoint.Station != null ? r.ChargePoint.Station.Name : "N/A",
+            ConnectorId = r.Connector.ConnectorId,
+            ConnectorType = r.Connector.Type.ToString(),
+            StartTime = r.StartTime,
+            EndTime = r.EndTime,
+            Status = r.Status,
+            DurationHours = (r.EndTime - r.StartTime).TotalHours,
+            IsActive = r.Status == "Active" &&
+                      r.StartTime <= DateTime.UtcNow &&
+                      r.EndTime >= DateTime.UtcNow,
+            UserInfo = new UserShortInfoDto
+            {
+                Id = r.User.Id,
+                FirstName = r.User.FirstName,
+                LastName = r.User.LastName,
+                Email = r.User.Email
+            },
+            StationLocation = new LocationDto
+            {
+                Latitude = r.ChargePoint.Station != null ? r.ChargePoint.Station.Latitude : 0,
+                Longitude = r.ChargePoint.Station != null ? r.ChargePoint.Station.Longitude : 0,
+                Address = r.ChargePoint.Station != null ? r.ChargePoint.Station.Address : "N/A"
+            },
+            CreatedAt = r.CreatedAt,
+            UpdatedAt = r.UpdatedAt
+        });
+    }
+}

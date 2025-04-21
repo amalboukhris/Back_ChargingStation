@@ -1,13 +1,11 @@
-﻿using Umbraco.Core.Models;
+﻿using System;
+using System.Collections.Generic;
 
 namespace ChargingStation.Models
 {
     public class Client : User
     {
-        public int Id { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-
-
-        public virtual ICollection<NotificationData> Notifications { get; set; } = new HashSet<NotificationData>();
     }
 }
